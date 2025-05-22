@@ -1,13 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head><title>Edit Post</title></head>
-<body>
-    <h1>Edit Post</h1>
-    <form method="post">
-        <p>Title: <input type="text" name="title" value="{{ post[1] }}" required></p>
-        <p>Content: <textarea name="content" required>{{ post[2] }}</textarea></p>
-        <p><button type="submit">Update</button></p>
-    </form>
-    <a href="{{ url_for('index') }}">Back</a>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Edit Post{% endblock %}
+{% block content %}
+<h2>Edit Post</h2>
+<form method="POST">
+  <div class="mb-3">
+    <label class="form-label">Title</label>
+    <input type="text" class="form-control" name="title" value="{{ post.title }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Content</label>
+    <textarea class="form-control" name="content" rows="5" required>{{ post.content }}</textarea>
+  </div>
+  <button type="submit" class="btn btn-success btn-animate">Update</button>
+</form>
+{% endblock %}

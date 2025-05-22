@@ -1,24 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for
-import sqlite3
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+import os
 
 app = Flask(__name__)
-DATABASE = 'blog.db'
+app.secret_key = 'your_secret_key'
 
-def init_db():
-    with sqlite3.connect(DATABASE) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                content TEXT NOT NULL
-            )
-        """)
+# Database setup
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'blog.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Blog model
+class BlogPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    content = db.Column(db.Text)
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect(DATABASE)
-    posts = conn.execute('SELECT * FROM posts').fetchall()
-    conn.close()
+    posts = BlogPost.query.all()
     return render_template('index.html', posts=posts)
 
 @app.route('/create', methods=['GET', 'POST'])
@@ -26,33 +27,30 @@ def create():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        conn = sqlite3.connect(DATABASE)
-        conn.execute('INSERT INTO posts (title, content) VALUES (?, ?)', (title, content))
-        conn.commit()
-        conn.close()
+        new_post = BlogPost(title=title, content=content)
+        db.session.add(new_post)
+        db.session.commit()
+        flash('Post created successfully!')
         return redirect(url_for('index'))
     return render_template('create.html')
 
-@app.route('/edit/<int:post_id>', methods=['GET', 'POST'])
-def edit(post_id):
-    conn = sqlite3.connect(DATABASE)
+@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+def edit(id):
+    post = BlogPost.query.get_or_404(id)
     if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        conn.execute('UPDATE posts SET title = ?, content = ? WHERE id = ?', (title, content, post_id))
-        conn.commit()
-        conn.close()
+        post.title = request.form['title']
+        post.content = request.form['content']
+        db.session.commit()
+        flash('Post updated successfully!')
         return redirect(url_for('index'))
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
-    conn.close()
     return render_template('edit.html', post=post)
 
-@app.route('/delete/<int:post_id>', methods=['POST'])
-def delete(post_id):
-    conn = sqlite3.connect(DATABASE)
-    conn.execute('DELETE FROM posts WHERE id = ?', (post_id,))
-    conn.commit()
-    conn.close()
+@app.route('/delete/<int:id>')
+def delete(id):
+    post = BlogPost.query.get_or_404(id)
+    db.session.delete(post)
+    db.session.commit()
+    flash('Post deleted!')
     return redirect(url_for('index'))
 
 @app.route('/about')
@@ -68,5 +66,6 @@ def contact():
     return render_template('contact.html')
 
 if __name__ == '__main__':
-    init_db()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
