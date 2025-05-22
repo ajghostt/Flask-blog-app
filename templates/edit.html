@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Edit Post</title></head>
+<body>
+    <h1>Edit Post</h1>
+    <form method="post">
+        <p>Title: <input type="text" name="title" value="{{ post[1] }}" required></p>
+        <p>Content: <textarea name="content" required>{{ post[2] }}</textarea></p>
+        <p><button type="submit">Update</button></p>
+    </form>
+    <a href="{{ url_for('index') }}">Back</a>
+</body>
+</html>
